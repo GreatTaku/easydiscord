@@ -1,4 +1,4 @@
-__version__ = '0.1a0.dev0'
+__version__ = '0.1a0'
 
 from .core import *
 from .bot import *
