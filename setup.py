@@ -41,7 +41,7 @@ class PostInstallCommand(install):
 
 setup(name='easydiscord',
       author='Taku',
-      url='None Yet',
+      url='https://github.com/GreatTaku/easydiscord/',
       version=__version__,
       packages=['easydiscord'],
       license='MIT',
