@@ -1,9 +1,7 @@
 try:
     from setuptools import setup
-    from setuptools.command.install import install
 except ImportError:
     from distutils.core import setup
-    from distutils.command.install import install
 
 import sys
 
@@ -27,29 +25,21 @@ except FileNotFoundError:
     README = ''
 
 
-class PostInstallCommand(install):
-
-    def run(self):
-        super().run()
-        try:
-            from pip import main
-        except ImportError:
-            from pip._internal import main
-
-        main(['install', 'https://github.com/Rapptz/discord.py/archive/rewrite.zip#egg=discord.py[voice]'])
-
-
 setup(name='easydiscord',
       author='Taku',
       url='https://github.com/GreatTaku/easydiscord/',
       version=__version__,
-      packages=['easydiscord'],
+      packages=[
+          'easydiscord'
+      ],
       license='MIT',
       description='An easy to use wrapper for Discord.py',
       long_description=README,
-      install_requires=['aiohttp>=2.2.0', ],
+      install_requires=[
+          'aiohttp>=2.2.0',
+          'discord-rewrite',
+      ],
       include_package_data=True,
-      cmdclass={'install': PostInstallCommand},
       python_requires='>=3.4',
       keywords='discord.py easy simple discord python',
       classifiers=[
