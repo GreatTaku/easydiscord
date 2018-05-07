@@ -3,15 +3,9 @@ try:
 except ImportError:
     from distutils.core import setup
 
-import sys
 
-if sys.version_info[0:2] < (3, 4):
-    raise Exception("Python 3.4+ is required.")
-else:
-    from pathlib import Path
-
-__version__ = "0"
-with open(Path("./easydiscord/__init__.py"), 'r') as f:
+__version__ = "0.0"
+with open("./easydiscord/__init__.py", 'r') as f:
     from re import search
     _version = search(r"__version__\s*=\s*\'(.*?)\'", f.read())
     if _version is not None:
@@ -19,7 +13,7 @@ with open(Path("./easydiscord/__init__.py"), 'r') as f:
 
 
 try:
-    with open(Path("./README.rst"), 'r') as f:
+    with open("./README.rst", 'r') as f:
         README = f.read()
 except FileNotFoundError:
     README = ''

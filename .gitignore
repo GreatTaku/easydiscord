@@ -2,5 +2,7 @@ examples
 .idea
 __pycache__
 dist
-build
-*.egg-info
+
+docs/Makefile
+docs/make.bat
+docs/_build/*
