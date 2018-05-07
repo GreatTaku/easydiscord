@@ -30,7 +30,7 @@ setup(name='easydiscord',
       description='An easy to use wrapper for Discord.py',
       long_description=README,
       install_requires=[
-          'aiohttp>=2.2.0',
+          'aiohttp>=2.2.0, <2.3.0',
           'discord-rewrite',
       ],
       include_package_data=True,
