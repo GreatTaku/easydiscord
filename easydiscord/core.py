@@ -3,12 +3,18 @@ import asyncio
 from discord.ext import commands as _cmd
 from .exceptions import EasyDiscordError
 from .utils import _no_print
+from functools import wraps
 
-__all__ = ["Command", "Group", "BotBase"]
+import abc
+
+__all__ = ["Command", "Group"]
 
 
 class Command(_cmd.Command):
-
+    """
+    A subclass of python.py's :class:`Command <discord.ext.commands.Command>`.
+    This should be used as the ``Command`` object.
+    """
     def __init__(self, name, callback, **kwargs):
         super().__init__(name, callback, **kwargs)
         self._cog_name = None
@@ -26,23 +32,84 @@ class Command(_cmd.Command):
         self._cog_name = val
 
 
-class Group:
+class Group(abc.ABC):
 
     def __init__(self):
+        """
+        This is the superclass for all grouping of commands.
+        See :meth:`.add_group` for exmaples.
+
+        Raises:
+            :class:`TypeError`:
+                When :meth:`register` is not overwritten by subclasses.
+        """
         self.func_names = {}
 
-    def set_name(self, func, name):
-        self.func_names[func.__func__.__name__] = name
-        return func
+    # ! make set_name support decorators
+    def set_name(self, meth, name):
+        """
+        Sets/changes the name from the method. This function is not required, the command name
+        will remain to be the method's name if :meth:`set_name()` is not called.
+        After the method's name has been changed, the command will use the new name.
+        Only use :meth:`set_name` in :meth:`register`.
+
+        Args:
+            meth: (:class:`method`):
+                The method whom name will be changed.
+
+            name: (:class:`str`):
+                The name to change it to.
+
+        Returns:
+            The method provided by argument ``meth``.
+
+        Examples: ::
+
+            class Greetings(discord.Group):
+                @property
+                def register(self):
+                    self.set_name(self.hi, 'hello') # The registered command is not called 'hello'
+                    return [self.hi]
+
+                def hi(self, ctx):
+                    print('hi')
+
+            bot.add_group(Greetings)
+        """
+
+        if not hasattr(meth, '__self__'):
+            self.func_names[meth.__name__] = name
+        else:
+            self.func_names[meth.__func__.__name__] = name
+        return meth
 
     @property
+    @abc.abstractmethod
     def register(self):
+        """
+        **This class must be overwritten.**
+
+        This method should return a list of commands to register.
+        If there's no command to register, this should return an empty list.
+
+        Returns: :class:`list`:
+            A list of commands to register, all commands needs to be instances.
+        """
         return []
 
 
 class BotBase:
-    def __init__(self, token, *, no_print=False):
-        if no_print:
+    def __init__(self, token, *, verbose: bool=True):
+        """
+        Args:
+            token: (:class:`str`):
+                Your bot's API token.
+
+            verbose: (:class:`bool`):
+                Whether or not to receive some :func:`print` messages. Defaults to :const:`True`.
+        """
+
+        if not verbose:
             self.print = lambda *args, **kwargs: None
         else:
             self.print = print
@@ -53,8 +120,22 @@ class BotBase:
 
     @property
     def bot(self) -> _cmd.Bot:
+        """
+        Retrieve the background discord.py :class:`Bot <discord.ext.commands.Bot>` instance.
+        Do not use this unless you have a clear idea on integrating this into your code.
+
+        Returns:
+             :class:`Bot <discord.ext.commands.Bot>`:
+
+                A discord.py :class:`Bot <discord.ext.commands.Bot>`.
+
+        Raises:
+            :class:`.EasyDiscordError`:
+                When :meth:`Bot.config()` is not called first.
+        """
+
         if self._bot is None:
-            raise EasyDiscordError(".config() need to be called first.")
+            raise EasyDiscordError(".config() or .setup() need to be called first.")
         return self._bot
 
     @bot.setter
@@ -63,35 +144,115 @@ class BotBase:
 
     @property
     def prefix(self) -> str:
+        """
+        The prefix from your :class:`Bot`'s chat commands.
+
+        Returns:
+             :class:`str`:
+
+                The string representation of your :class:`Bot`'s prefix.
+
+        Raises:
+            :class:`.EasyDiscordError`:
+                When :meth:`Bot.config()` is not called first.
+        """
+
         if self._prefix is None:
-            raise EasyDiscordError(".config() need to be called first.")
+            raise EasyDiscordError(".config() or .setup() need to be called first.")
         return self._prefix
 
     @prefix.setter
     def prefix(self, val):
         self._prefix = val
 
+    # ! help_format
     def config(self, prefix="$", default_on_ready=True, desc="", help_format=None):
-        self.prefix = prefix
+        """
+        Configures this :class:`Bot`.
+
+        Args:
+            prefix: (:class:`str`):
+                The chat commands prefix from your :class:`Bot`. Defaults to ``'$'``.
+
+            default_on_ready: (:class:`bool`):
+                Whether nor not use the default :meth:`on_ready` message. Defaults to :const:`True`.
+
+            desc: (:class:`str`):
+                The description for the :class:`Bot`.
+
+            help_format:
+                |no-impl|
+
+        Returns:
+            :class:`Bot`:
+                The :class:`Bot` itself.
+        """
+
+        self.prefix = prefix if self._prefix is None else prefix
         self.bot = _cmd.Bot(command_prefix=self.prefix, description=desc, formatter=help_format)
         if default_on_ready:
             self.add_event(self.on_ready)
+        return self
+
+    @wraps(config)
+    def setup(self, *args, **kwargs):
+        return self.config(*args, **kwargs)
+
+    setup.__doc__ = "An alias of :meth:`.config()`.\n{}".format(setup.__doc__)
 
     def start_bot(self):
+        """
+        Starts the main loop of the discord bot. Do not add anything after this command.
+
+        Returns:
+            :const:`None`
+        """
+
         self.bot.run(self.token)
 
     @asyncio.coroutine
     def on_ready(self):
+        """
+        |coro|
+
+        The default ``on_ready`` event. Nothing will be printed if  initial ``verbose`` is set to :const:`False`.
+
+        The following will be printed: ::
+
+            Logged in as:
+            Bot : <bot-name>
+            ID  : <bot-id>
+            ------
+
+        Returns:
+             :const:`None`
+        """
+
         self.print('Logged in as')
-        self.print("Bot:", self.bot.user.name)
-        self.print("ID:", self.bot.user.id)
+        self.print("Bot :", self.bot.user.name)
+        self.print("ID  :", self.bot.user.id)
         self.print('------')
 
     @asyncio.coroutine
     def process_message(self, message):
+        """
+        |coro|
+
+        |no-impl|
+
+        """
+
         yield from self.bot.process_commands(message)
 
     def reload(self):
+        """
+        Resets the bot. Shuts the bot down and restarts it.
+
+        Returns:
+            :const:`None`
+
+        """
+
         self.bot.clear()
 
     def __getattr__(self, attr):
@@ -113,22 +274,67 @@ class BotBase:
 
         return on_message
 
-    def add_event(self, func, event_name=None):
+    # ! more desc
+    def add_event(self, func, *, name=None):
+        """
+        Adds an event handler. The ``name`` keyword argument can be used to override the function's name.
 
-        if event_name is None:
-            event_name = func.__name__
+        Args:
+            func: (:class:`function`):
+                The event handler itself, it can be a coroutine or not.
+
+            name: (:class:`str`):
+                The optional replacement name for your event handler.
+                If :const:`None` is passed, the function name will be used.
+
+        Returns:
+            The function provided by argument ``func``.
+
+        Examples: ::
+
+            def on_message(message):
+                print('hi')
+
+            bot.add_event(on_message)
+        """
+
+        if name is None:
+            name = func.__name__
 
         if not asyncio.iscoroutinefunction(func):
             func = asyncio.coroutine(func)
 
-        if event_name == 'on_message':
+        if name == 'on_message':
             func = self._on_message_wrapper(func)
 
-        func = self.bot.listen(event_name)(func)
-        self.print('%s has successfully been registered as an event' % event_name)
+        func = self.bot.listen(name)(func)
+        self.print('%s has successfully been registered as an event' % name)
         return func
 
+    # ! more info
     def add_command(self, func, *, name=None):
+        """
+        Adds a handler to a command. The ``name`` keyword argument can be used to override the function name.
+
+        Args:
+            func: (:class:`function`):
+                The command handler itself, it can be a coroutine or not.
+
+            name: (:class:`str`):
+                The optional replacement name for your command.
+                If :const:`None` is passed, the function name will be used.
+
+        Returns:
+            The function provided by argument ``func``.
+
+        Examples: ::
+
+            def hi(ctx):
+                print('hi')
+
+            bot.add_command(hi)
+        """
+
         if not asyncio.iscoroutinefunction(func):
             func = asyncio.coroutine(func)
 
@@ -140,12 +346,45 @@ class BotBase:
         self.print("Command {} is registered".format(name))
         return command
 
-    def add_group(self, group, *, name=None):
+    def add_group(self, group: Group, *, name=None):
+        """
+        Adds a group of commands. The ``name`` keyword argument can be used to override the class name.
+
+        Args:
+            group: (:class:`Group`):
+                The class of the commands.
+
+            name: (:class:`str`):
+                The optional replacement name for your group.
+                If :const:`None` is passed, the class name will be used.
+
+        Returns:
+            The class provided by argument ``group``.
+
+        Raises:
+            :class:`.EasyDiscordError`:
+                When the ``group`` argument isn't a subclass of :class:`Group`.
+
+        Examples: ::
+
+            class Greetings(discord.Group):
+                @property
+                def register(self):
+                    return [self.hi]
+
+                def hi(self, ctx):
+                    print('hi')
+
+            bot.add_group(Greetings)
+        """
+        if not isinstance(group, Group):
+            raise EasyDiscordError("group argument must be a subclass of easydiscord.Group.")
+
         group_name = type(group).__name__ if name is None else name
 
         for func in group.register:
             if not hasattr(func, '__self__'):
-                raise AttributeError("Registered command must be an instances method, maybe try {}?".format(
+                raise AttributeError("Command to register must be an instance's method, maybe try self.{}?".format(
                     func.__name__))
             command_name = func.__self__.func_names.get(func.__func__.__name__, func.__func__.__name__)
 
@@ -154,3 +393,5 @@ class BotBase:
                 setattr(command, 'cog_name', group_name)
 
             self.print("Command {} of {} is registered".format(command.name, group_name))
+
+        return group

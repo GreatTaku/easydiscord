@@ -12,10 +12,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
 
+import os
+import sys
+
+sys.path.append(os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -23,13 +24,20 @@ project = 'EasyDiscord'
 copyright = '2018, Taku'
 author = 'Taku'
 
-# The short X.Y version
-version = ''
-# The full version, including alpha/beta/rc tags
-release = '0.1a0'
+with open("../easydiscord/__init__.py", 'r') as f:
+    from re import search
+    # The short and full version, including alpha/beta/rc tags
+    version = release = search(r"__version__\s*=\s*\'(.*?)\'", f.read()).group(1)
 
 
+highlight_language = 'python3'
 # -- General configuration ---------------------------------------------------
+
+rst_prolog = """
+.. |name| replace:: ``{}``
+.. |coro| replace:: `This method is a coroutine.`
+.. |no-impl| replace:: `This function has not been implemented yet.`
+""".format(project.lower())
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
@@ -38,14 +46,20 @@ release = '0.1a0'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.napoleon',
 ]
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+intersphinx_mapping = {'python': ('https://docs.python.org/dev', None),
+                       'discord': ('https://discordpy.readthedocs.io/en/rewrite/', None)}
 
-# The suffix(es) of source filenames.
+# Add any paths that contain templates here, relative to this directory.
+# templates_path = ['_templates']
+
+# The suffix(es) of source file names.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
@@ -59,7 +73,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -67,7 +81,7 @@ language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'default'
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -75,19 +89,29 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+
+# html_experimental_html5_writer = True
+
 html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {'show_powered_by': True,
+                      'github_button': True,
+                      # 'github_banner': True,
+                      'github_user': 'GreatTaku',
+                      'github_repo': project,
+                      'show_related': True
+                      }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+html_show_sourcelink = False
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
@@ -96,7 +120,8 @@ html_static_path = ['_static']
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
 #
-# html_sidebars = {}
+
+html_sidebars = {'**': ['localtoc.html', 'globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html']}
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -157,3 +182,6 @@ texinfo_documents = [
 
 
 # -- Extension configuration -------------------------------------------------
+
+autodoc_member_order = 'groupwise'
+autoclass_content = 'both'
