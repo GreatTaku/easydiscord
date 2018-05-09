@@ -3,18 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to EasyDiscord's documentation!
-=======================================
+Welcome to EasyDiscord's documentation! (DEVELOPMENT BETA)
+==========================================================
 
+EasyDiscord is a simple to use wrapper for `Discord.py
+<https://github.com/Rapptz/discord.py/tree/rewrite/>`_ library.
+
+**Targeted audiences:**
+
+- Beginner developers with little to no experience in programming
+- Anyone who wish to make a simple discord bot
+
+
+References
+----------
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 3
 
-   bot
+    api
 
 
-
-Indices and tables
-==================
+Search
+------
 
 * :ref:`genindex`
 * :ref:`modindex`
