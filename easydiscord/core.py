@@ -65,7 +65,7 @@ class Group(abc.ABC):
 
         Examples: ::
 
-            class Greetings(discord.Group):
+            class Greetings(easydiscord.Group):
                 @property
                 def register(self):
                     self.set_name(self.hi, 'hello') # The registered command is not called 'hello'
@@ -367,7 +367,7 @@ class BotBase:
 
         Examples: ::
 
-            class Greetings(discord.Group):
+            class Greetings(easydiscord.Group):
                 @property
                 def register(self):
                     return [self.hi]

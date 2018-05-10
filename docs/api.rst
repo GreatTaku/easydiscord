@@ -8,10 +8,10 @@ Importing
 
 The recommended way to import |name| is as followed: ::
 
-    import easydiscord as discord
+    import easydiscord
+    from easydiscord import *
 
-In the following documentation, |name| will be referenced as ``discord``.
-
+This will import all the necessary items into your global scope.
 Version Info
 ------------
 
@@ -25,7 +25,7 @@ Version Info
 
     Example: ::
 
-        print(discord.__version__)
+        print(easydiscord.__version__)
         "0.1a0.dev0"
 
 Initiative Functions
