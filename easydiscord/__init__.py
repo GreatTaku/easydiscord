@@ -3,7 +3,6 @@ __version__ = '0.1a0'
 from .core import *
 from .bot import *
 
-
 # ! Add doc for api token link to how to obtain a token
 def get_bot(token: str, *args, **kwargs):
     """
@@ -26,7 +25,7 @@ def get_bot(token: str, *args, **kwargs):
 
     Examples: ::
 
-        bot = discord.get_bot("MY_API_TOKEN")
+        bot = easydiscord.get_bot("MY_API_TOKEN")
 
     """
     return Bot(token, *args, **kwargs)
