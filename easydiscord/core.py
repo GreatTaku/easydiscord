@@ -1,8 +1,6 @@
-import asyncio
-
 from discord.ext import commands as _cmd
-from .exceptions import EasyDiscordError
-from .utils import _no_print
+from .exceptions import *
+from .utils import _no_print, _check_coro
 from functools import wraps
 
 import abc
@@ -99,7 +97,9 @@ class Group(abc.ABC):
 
 
 class BotBase:
-    def __init__(self, token, *, verbose: bool=True):
+
+    # ! add 'ignore' from severity
+    def __init__(self, token, *, verbose: bool=True, severity='high'):
         """
         Args:
             token: (:class:`str`):
@@ -107,6 +107,15 @@ class BotBase:
 
             verbose: (:class:`bool`):
                 Whether or not to receive some :func:`print` messages. Defaults to :const:`True`.
+
+            severity: (:class:`str`):
+                How should none-breaking error be handled.
+                If set to 'low', a warning will be raised; if set to 'high' an exception would be raised.
+                Defaults to 'high'.
+
+        Raises:
+            :class:`AttributeError`:
+                When severity is incorrectly set.
         """
 
         if not verbose:
@@ -117,6 +126,9 @@ class BotBase:
         self._prefix = None
         self.token = token
         self.all_commands = {}
+        if severity not in {'high', 'low'}:
+            raise AttributeError("severity must be set to 'high' or 'low'")
+        self.severity = severity
 
     @property
     def bot(self) -> _cmd.Bot:
@@ -210,8 +222,7 @@ class BotBase:
 
         self.bot.run(self.token)
 
-    @asyncio.coroutine
-    def on_ready(self):
+    async def on_ready(self):
         """
         |coro|
 
@@ -233,8 +244,7 @@ class BotBase:
         self.print("ID  :", self.bot.user.id)
         self.print('------')
 
-    @asyncio.coroutine
-    def process_message(self, message):
+    async def process_message(self, message):
         """
         |coro|
 
@@ -242,7 +252,7 @@ class BotBase:
 
         """
 
-        yield from self.bot.process_commands(message)
+        await self.bot.process_commands(message)
 
     def reload(self):
         """
@@ -266,12 +276,16 @@ class BotBase:
             return self.__getattribute__(attr)
 
     def _on_message_wrapper(self, func):
-        @asyncio.coroutine
-        def on_message(message):
-            val = yield from func(message)
-            if val:
-                yield from self.process_message(message)
 
+        async def on_message(message):
+            val = await func(message)
+
+            if val is not None:
+                if not isinstance(val, str):
+                    self.print("Return value of on_message is not type str. Type: {}".format(type(str)))
+                    return
+
+                await self.process_message(message)
         return on_message
 
     # ! more desc
@@ -301,8 +315,7 @@ class BotBase:
         if name is None:
             name = func.__name__
 
-        if not asyncio.iscoroutinefunction(func):
-            func = asyncio.coroutine(func)
+        func = _check_coro(func, self.severity)
 
         if name == 'on_message':
             func = self._on_message_wrapper(func)
@@ -335,8 +348,7 @@ class BotBase:
             bot.add_command(hi)
         """
 
-        if not asyncio.iscoroutinefunction(func):
-            func = asyncio.coroutine(func)
+        func = _check_coro(func, self.severity)
 
         name = func.__name__ if name is None else name
         command = _cmd.command(name=name, cls=Command)(func)
